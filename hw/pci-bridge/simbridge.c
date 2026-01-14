@@ -911,6 +911,28 @@ process_memwr(int fd, simmsg_t *m)
     simc_writeres(bdf, addr, size, 0);
 }
 
+#define MAX_ATS_REQ_LEN 16
+static int
+process_ats_req(int fd, simmsg_t *m)
+{
+    const u_int16_t bdf = m->u.ats_req.bdf;
+    const u_int64_t addr = m->u.ats_req.addr;
+    const u_int32_t length = m->u.ats_req.length;
+    uint64_t resp_addrs[MAX_ATS_REQ_LEN];
+
+    dbgprintf("ats_req: bdf %04x addr 0x%"PRIx64" length 0x%x\n",
+              bdf, addr, length);
+
+    if (length > MAX_ATS_REQ_LEN)
+        return simc_ats_res(bdf, addr, length, NULL, 1);
+
+    // TODO: handle the ATS request
+    for (unsigned i = 0; i < length; ++i)
+        resp_addrs[i] = 0xdeadbeefcace0000ULL + (i << 12);
+
+    return simc_ats_res(bdf, addr, length, resp_addrs, 0);
+}
+
 static void
 msg_handler(int fd, simmsg_t *m)
 {
@@ -925,6 +947,9 @@ msg_handler(int fd, simmsg_t *m)
         break;
     case SIMMSG_SYNC_REQ:
         simc_sync_ack();
+        break;
+    case SIMMSG_ATS_REQ:
+        process_ats_req(fd, m);
         break;
     default:
         dbgprintf("unknown msg type %d\n", m->msgtype);

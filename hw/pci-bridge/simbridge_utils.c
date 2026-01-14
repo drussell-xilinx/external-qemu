@@ -513,6 +513,29 @@ simc_writeres(u_int16_t bdf,
 }
 
 int
+simc_ats_res(u_int16_t bdf,
+             u_int64_t addr, u_int32_t length, void *buf, u_int8_t error)
+{
+    int s = simclient.s;
+    simmsg_t m = {
+        .msgtype = SIMMSG_ATS_RES,
+        .u.ats_res.bdf = bdf,
+        .u.ats_res.addr = addr,
+        .u.ats_res.length = length,
+        .u.ats_res.error = error,
+    };
+    int r;
+
+    if (!simclient.open) return -EBADF;
+
+    r = sim_writen(s, &m, sizeof(m));
+    if (r >= 0 && error == 0) {
+        r = sim_writen(s, buf, length * sizeof(uint64_t));
+    }
+    return r;
+}
+
+int
 simc_readn(void *buf, size_t size)
 {
     if (!simclient.open) return -EBADF;
